@@ -516,6 +516,8 @@ def test_wrap_sync_filesystem_rejecting_asynchronous(tmp_path: pathlib.Path) -> 
     from fsspec.implementations.local import LocalFileSystem
 
     class StrictSyncFileSystem(LocalFileSystem):
+        protocol = "strictsync"
+
         def __init__(self, auto_mkdir: bool = False) -> None:
             super().__init__(auto_mkdir=auto_mkdir)
 
