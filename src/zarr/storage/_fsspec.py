@@ -248,8 +248,14 @@ class FsspecStore(Store):
             # before fsspec==2024.3.1
             from fsspec.core import url_to_fs
 
+        from fsspec import get_filesystem_class
+        from fsspec.utils import get_protocol
+
         opts = storage_options or {}
-        opts = {"asynchronous": True, **opts}
+        # Only async filesystems accept `asynchronous`; sync ones (e.g. sftp) reject it
+        # and are wrapped by _make_async below instead.
+        if get_filesystem_class(get_protocol(url)).async_impl:
+            opts = {"asynchronous": True, **opts}
 
         fs, path = url_to_fs(url, **opts)
         if not fs.async_impl:

@@ -507,6 +507,25 @@ def test_wrap_sync_filesystem(tmp_path: pathlib.Path) -> None:
 
 
 @pytest.mark.skipif(
+    parse_version(fsspec.__version__) < parse_version("2024.12.0"),
+    reason="No AsyncFileSystemWrapper",
+)
+def test_wrap_sync_filesystem_rejecting_asynchronous(tmp_path: pathlib.Path) -> None:
+    """A sync fs whose constructor rejects `asynchronous` (like sftp) must still be wrapped"""
+    from fsspec.implementations.asyn_wrapper import AsyncFileSystemWrapper
+    from fsspec.implementations.local import LocalFileSystem
+
+    class StrictSyncFileSystem(LocalFileSystem):
+        def __init__(self, auto_mkdir: bool = False) -> None:
+            super().__init__(auto_mkdir=auto_mkdir)
+
+    fsspec.register_implementation("strictsync", StrictSyncFileSystem, clobber=True)
+    store = FsspecStore.from_url(f"strictsync://{tmp_path}", storage_options={"auto_mkdir": True})
+    assert isinstance(store.fs, AsyncFileSystemWrapper)
+    array_roundtrip(store)
+
+
+@pytest.mark.skipif(
     parse_version(fsspec.__version__) >= parse_version("2024.12.0"),
     reason="No AsyncFileSystemWrapper",
 )
